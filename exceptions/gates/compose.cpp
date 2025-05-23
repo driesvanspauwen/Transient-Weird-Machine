@@ -1,7 +1,7 @@
 #include "compose.h"
 
 #define THRESHOLD 150
-#define DELAY 512
+#define DELAY 1024
 
 uint8_t tmp_reg1[4*512];
 uint8_t tmp_reg2[4*512];
@@ -48,34 +48,34 @@ void xor_gate(uint8_t* in1, uint8_t* in2, uint8_t* out, unsigned input) {
     tmp_reg8[0] = 0;
     tmp_reg9[0] = 0;
     tmp_reg10[0] = 0;
-#ifndef INTEL
-    assign(tmp_reg5, input & 1);
-    assign(tmp_reg6, input & 2);
-#endif
-    _mm_clflush(tmp_reg7);
-    _mm_clflush(tmp_reg8);
-    _mm_clflush(tmp_reg9);
-    _mm_clflush(tmp_reg10);
-    for (volatile int z = 0; z < DELAY; z++) {}
+    #ifndef INTEL
+        assign(tmp_reg5, input & 1);
+        assign(tmp_reg6, input & 2);
+    #endif
+        _mm_clflush(tmp_reg7);
+        _mm_clflush(tmp_reg8);
+        _mm_clflush(tmp_reg9);
+        _mm_clflush(tmp_reg10);
+        for (volatile int z = 0; z < DELAY; z++) {}
 
-    // reg9 = in1 | in2
-    or_gate(in1, in2, tmp_reg9);
-#ifdef INTEL
-    assign(tmp_reg5, input & 1);
-    assign(tmp_reg6, input & 2);
-#endif
-    for (volatile int z = 0; z < DELAY; z++) {}
+        // reg9 = in1 | in2
+        or_gate(in1, in2, tmp_reg9);
+    #ifdef INTEL
+        assign(tmp_reg5, input & 1);
+        assign(tmp_reg6, input & 2);
+    #endif
+        for (volatile int z = 0; z < DELAY; z++) {}
 
-    // reg10 = !(in1 & in2)
-    nand_gate(tmp_reg5, tmp_reg6, tmp_reg10);
-    for (volatile int z = 0; z < DELAY; z++) {}
-    
-    // out = reg9 & reg10
-#ifdef INTEL
-    uint64_t clk = timer(tmp_reg10);
-    assign(tmp_reg10, clk <= THRESHOLD);
-#endif
-    and_gate(tmp_reg9, tmp_reg10, out);
+        // reg10 = !(in1 & in2)
+        nand_gate(tmp_reg5, tmp_reg6, tmp_reg10);
+        for (volatile int z = 0; z < DELAY; z++) {}
+        
+        // out = reg9 & reg10
+    #ifdef INTEL
+        uint64_t clk = timer(tmp_reg10);
+        assign(tmp_reg10, clk <= THRESHOLD);
+    #endif
+        and_gate(tmp_reg9, tmp_reg10, out);
 }
 
 void mux_gate(uint8_t* in1, uint8_t* in2, uint8_t* in3, uint8_t* out, unsigned input) {

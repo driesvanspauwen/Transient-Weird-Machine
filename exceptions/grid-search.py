@@ -5,6 +5,13 @@ import os
 import sys
 import time
 
+GATE_NAMES = ['AND', 'OR', 'ASSIGN', 'NOT', 'NAND', 'XOR', 'MUX']
+THRESHOLDS = range(100, 301, 25)
+DELAYS = [32, 48, 64, 96, 128, 192, 256, 512, 1024]
+
+# Number of trials of main.elf for every combination of threshold and delay
+AMT_TRIALS = 10 # (see `static struct argp_option options[]` in main.cpp)
+
 def test_parameters(threshold, delay):
     """Test a specific combination of threshold and delay values for all gates"""
     # Modify parameters in compose.cpp
@@ -45,18 +52,17 @@ def test_parameters(threshold, delay):
                        check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
         # Run the executable
-        result = subprocess.run(['./main_temp.elf', '-t', '3'], 
+        result = subprocess.run(['./main_temp.elf', '-t', str(AMT_TRIALS)], 
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         
         # Extract accuracy for all gates
         gate_accuracies = {}
-        gate_names = ['AND', 'OR', 'ASSIGN', 'NOT', 'NAND', 'XOR', 'MUX']
         
         for line in result.stdout.splitlines():
             if "Correct rate: (avg, std)" in line:
                 idx = result.stdout.splitlines().index(line)
                 prev_line = result.stdout.splitlines()[idx-1]
-                for gate in gate_names:
+                for gate in GATE_NAMES:
                     if f"=== {gate} gate" in prev_line:
                         accuracy = float(re.search(r'\(([0-9.]+)%', line).group(1))
                         gate_accuracies[gate] = accuracy
@@ -77,37 +83,33 @@ def test_parameters(threshold, delay):
             os.remove('gates/compose_temp.cpp')
 
 def main():
-    gate_names = ['AND', 'OR', 'ASSIGN', 'NOT', 'NAND', 'XOR', 'MUX']
-    thresholds = range(100, 301, 25)
-    delays = [32, 48, 64, 96, 128, 192, 256, 512, 1024]
-    
     # Create a separate file for each gate to store results
     result_files = {}
-    for gate in gate_names:
+    for gate in GATE_NAMES:
         filename = f"grid-search-results/{gate.lower()}_results.txt"
         result_files[gate] = open(filename, "w")
         result_files[gate].write(f"# Results for {gate} gate\n")
         
         # Fixed-width format for header row - using proper alignment
         header = "T\\D".ljust(10)
-        for delay in delays:
+        for delay in DELAYS:
             header += str(delay).ljust(10)
         result_files[gate].write(header + "\n")
     
     print("Testing combinations of threshold and delay values for all gates...")
-    print(f"Total combinations to test: {len(thresholds) * len(delays)}")
+    print(f"Total combinations to test: {len(THRESHOLDS) * len(DELAYS)}")
     
     counter = 0
-    total = len(thresholds) * len(delays)
+    total = len(THRESHOLDS) * len(DELAYS)
     
     start_time = time.time()
     
     # Test each combination
-    for threshold in thresholds:
+    for threshold in THRESHOLDS:
         # Initialize a row for each gate with fixed-width format
-        rows = {gate: str(threshold).ljust(10) for gate in gate_names}
+        rows = {gate: str(threshold).ljust(10) for gate in GATE_NAMES}
         
-        for delay in delays:
+        for delay in DELAYS:
             counter += 1
             
             # Calculate and display ETA
@@ -123,12 +125,12 @@ def main():
             gate_accuracies = test_parameters(threshold, delay)
             
             # Add results to each gate's row with fixed-width format
-            for gate in gate_names:
+            for gate in GATE_NAMES:
                 accuracy = gate_accuracies.get(gate, 0)
                 rows[gate] += f"{accuracy:.1f}".ljust(10)
         
         # Write each gate's completed row to its result file
-        for gate in gate_names:
+        for gate in GATE_NAMES:
             result_files[gate].write(rows[gate] + "\n")
             result_files[gate].flush()  # Ensure data is written even if the script is interrupted
     
@@ -138,9 +140,10 @@ def main():
     for file in result_files.values():
         file.close()
     
-    # Generate a summary of the best configurations
+    # Generate a summary of the best configurations and save to output.txt
+    best_configs = []
     print("\nBest configurations for each gate:")
-    for gate in gate_names:
+    for gate in GATE_NAMES:
         best_threshold = 0
         best_delay = 0
         best_accuracy = 0
@@ -165,12 +168,22 @@ def main():
                 
                 # Find best accuracy in this row
                 for i, accuracy in enumerate(accuracies):
-                    if i < len(delays) and accuracy > best_accuracy:
+                    if i < len(DELAYS) and accuracy > best_accuracy:
                         best_accuracy = accuracy
                         best_threshold = threshold
-                        best_delay = delays[i]
+                        best_delay = DELAYS[i]
         
-        print(f"{gate}: Threshold={best_threshold}, Delay={best_delay}, Accuracy={best_accuracy:.1f}%")
+        result_line = f"{gate}: Threshold={best_threshold}, Delay={best_delay}, Accuracy={best_accuracy:.1f}%"
+        print(result_line)
+        best_configs.append(result_line)
+    
+    # Write best configurations to output.txt
+    with open("output.txt", "w") as f:
+        f.write("Best configurations for each gate:\n")
+        for config in best_configs:
+            f.write(config + "\n")
+    
+    print("\nBest configurations saved to output.txt")
 
 if __name__ == "__main__":
     main()

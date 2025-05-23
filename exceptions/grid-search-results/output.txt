@@ -1,0 +1,13 @@
+Testing combinations of threshold and delay values for all gates...
+Total combinations to test: 81
+Testing combination 81/81 (T=300, D=1024), ETA: 0m 0ss
+Testing complete. Results saved to individual files.
+
+Best configurations for each gate:
+AND: Threshold=125, Delay=1024, Accuracy=100.0%
+OR: Threshold=100, Delay=128, Accuracy=100.0%
+ASSIGN: Threshold=100, Delay=128, Accuracy=100.0%
+NOT: Threshold=125, Delay=256, Accuracy=100.0%
+NAND: Threshold=275, Delay=512, Accuracy=77.9%
+XOR: Threshold=250, Delay=192, Accuracy=75.7%
+MUX: Threshold=225, Delay=48, Accuracy=78.1%

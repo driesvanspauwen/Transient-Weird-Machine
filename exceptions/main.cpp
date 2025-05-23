@@ -10,12 +10,12 @@
 #include "gates/compose.h"
 
 /* Config */
-#define THRESHOLD 200
+#define THRESHOLD 150
 bool verbose = false;
 unsigned tot_trials = 100;
 unsigned single_trial = 10000;
 #ifdef INTEL
-#define DELAY 64
+#define DELAY 1024
 #else
 #define DELAY 512
 #endif
@@ -218,9 +218,9 @@ void test_gate(
     bool (*gate_fn)(unsigned), 
     unsigned input_size
 ) {
-    const unsigned in_space = 1 << input_size;
-    std::vector<unsigned> tot_counts(tot_trials, 0);
-    std::vector<unsigned> tot_error_counts(tot_trials * in_space, 0);    
+    const unsigned in_space = 1 << input_size;  // 2^input_size (total amount of possible input combinations)
+    std::vector<unsigned> tot_counts(tot_trials, 0);  // amount of correct executions per trial
+    std::vector<unsigned> tot_error_counts(tot_trials * in_space, 0);  // amount of errors per input combination per trial
     clock_t end_t, start_t = clock();
 
     for (unsigned trial = 0; trial < tot_trials; trial++) {

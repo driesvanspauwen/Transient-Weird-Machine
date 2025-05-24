@@ -10,15 +10,15 @@
 #include "gates/compose.h"
 
 /* Config */
-#define THRESHOLD 150
+#define THRESHOLD 125
+#ifdef INTEL
+#define DELAY 128
+#else
+#define DELAY 128
+#endif
 bool verbose = false;
 unsigned tot_trials = 100;
 unsigned single_trial = 10000;
-#ifdef INTEL
-#define DELAY 1024
-#else
-#define DELAY 512
-#endif
 
 /* Side channel registers */
 uint8_t reg1[4*512];
@@ -112,11 +112,11 @@ bool do_nand_gate(unsigned input) {
     assign(reg1, input & 1);
     assign(reg2, input & 2);
     _mm_clflush(reg3);
-    for (volatile int z = 0; z < 64; z++) {}
+    for (volatile int z = 0; z < DELAY; z++) {}
 
     nand_gate(reg1, reg2, reg3);
-    for (volatile int z = 0; z < 64; z++) {}
-
+    for (volatile int z = 0; z < DELAY; z++) {}
+ 
     uint64_t clk = timer(reg3);
     return (clk <= THRESHOLD) == ((input & 3) != 3);
 }
@@ -130,7 +130,7 @@ bool do_xor_gate(unsigned input) {
     _mm_clflush(reg3);
 
     xor_gate(reg1, reg2, reg3, input);
-    for (volatile int z = 0; z < 512; z++) {}
+    for (volatile int z = 0; z < DELAY; z++) {}
 
     uint64_t clk = timer(reg3);
     return (clk <= THRESHOLD) == (
@@ -149,7 +149,7 @@ bool do_mux_gate(unsigned input) {
     _mm_clflush(reg4);
 
     mux_gate(reg1, reg2, reg3, reg4, input);
-    for (volatile int z = 0; z < 512; z++) {}
+    for (volatile int z = 0; z < DELAY; z++) {}
 
     uint64_t clk = timer(reg4);
     return (clk <= THRESHOLD) == (
@@ -277,6 +277,11 @@ int main(int argc, char* argv[]) {
     sigaction(SIGFPE, &sa, NULL);
 
     argp_parse(&argp, argc, argv, 0, 0, 0);
+
+    printf("Configuration: THRESHOLD=%d, DELAY=%d\n", THRESHOLD, DELAY);
+    printf("Testing with %d trials, %d iterations per trial\n\n", tot_trials, single_trial);
+
+    // test_gate("GATE_NAME_PLACEHOLDER", GATE_FUNCTION_PLACEHOLDER, GATE_INPUTS_PLACEHOLDER);
 
     test_gate("AND",    do_and_gate,    2);
     test_gate("OR",     do_or_gate,     2);

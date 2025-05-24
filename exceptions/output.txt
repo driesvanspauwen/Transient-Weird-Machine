@@ -1,8 +1,8 @@
 Best configurations for each gate:
-AND: Threshold=100, Delay=128, Accuracy=100.0%
-OR: Threshold=100, Delay=128, Accuracy=100.0%
-ASSIGN: Threshold=150, Delay=128, Accuracy=100.0%
-NOT: Threshold=100, Delay=128, Accuracy=100.0%
-NAND: Threshold=150, Delay=512, Accuracy=99.8%
-XOR: Threshold=300, Delay=96, Accuracy=76.1%
-MUX: Threshold=150, Delay=32, Accuracy=99.9%
+AND: Threshold=200, Delay=128, Accuracy=99.988%
+OR: Threshold=300, Delay=128, Accuracy=99.987%
+ASSIGN: Threshold=200, Delay=128, Accuracy=99.981%
+NOT: Threshold=275, Delay=512, Accuracy=99.993%
+NAND: Threshold=150, Delay=96, Accuracy=94.801%
+XOR: Threshold=150, Delay=192, Accuracy=74.993%
+MUX: Threshold=275, Delay=256, Accuracy=99.711%

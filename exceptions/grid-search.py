@@ -10,7 +10,7 @@ THRESHOLDS = range(100, 301, 25)
 DELAYS = [32, 48, 64, 96, 128, 192, 256, 512, 1024]
 
 # Number of trials of main.elf for every combination of threshold and delay
-AMT_TRIALS = 10 # (see `static struct argp_option options[]` in main.cpp)
+AMT_TRIALS = 100 # (see `static struct argp_option options[]` in main.cpp)
 
 def test_parameters(threshold, delay):
     """Test a specific combination of threshold and delay values for all gates"""
@@ -64,8 +64,17 @@ def test_parameters(threshold, delay):
                 prev_line = result.stdout.splitlines()[idx-1]
                 for gate in GATE_NAMES:
                     if f"=== {gate} gate" in prev_line:
-                        accuracy = float(re.search(r'\(([0-9.]+)%', line).group(1))
-                        gate_accuracies[gate] = accuracy
+                        # More robust regex to capture all decimal places
+                        # This will match patterns like (99.9833%, capturing 99.9833
+                        accuracy_match = re.search(r'\(([0-9]*\.?[0-9]+)%', line)
+                        if accuracy_match:
+                            accuracy_str = accuracy_match.group(1)
+                            accuracy = float(accuracy_str)
+                            gate_accuracies[gate] = accuracy
+                            # Debug print - remove this later
+                            # print(f"DEBUG: {gate} - matched '{accuracy_str}' -> {accuracy}")
+                        else:
+                            print(f"WARNING: Could not extract accuracy for {gate} from line: {line}")
                         break
         
         return gate_accuracies
@@ -93,7 +102,7 @@ def main():
         # Fixed-width format for header row - using proper alignment
         header = "T\\D".ljust(10)
         for delay in DELAYS:
-            header += str(delay).ljust(10)
+            header += str(delay).ljust(12)
         result_files[gate].write(header + "\n")
     
     print("Testing combinations of threshold and delay values for all gates...")
@@ -108,26 +117,20 @@ def main():
     for threshold in THRESHOLDS:
         # Initialize a row for each gate with fixed-width format
         rows = {gate: str(threshold).ljust(10) for gate in GATE_NAMES}
-        
         for delay in DELAYS:
             counter += 1
-            
-            # Calculate and display ETA
+            # Calculate and display elapsed time
             elapsed = time.time() - start_time
-            if counter > 1:
-                eta = elapsed / counter * (total - counter)
-                eta_min = int(eta / 60)
-                eta_sec = int(eta % 60)
-                print(f"Testing combination {counter}/{total} (T={threshold}, D={delay}), ETA: {eta_min}m {eta_sec}s", end="\r")
-            else:
-                print(f"Testing combination {counter}/{total} (T={threshold}, D={delay})", end="\r")
+            elapsed_min = int(elapsed / 60)
+            elapsed_sec = int(elapsed % 60)
+            print(f"Testing combination {counter}/{total} (T={threshold}, D={delay}), Elapsed: {elapsed_min}m {elapsed_sec}s", end="\r")
             
             gate_accuracies = test_parameters(threshold, delay)
-            
-            # Add results to each gate's row with fixed-width format
+            # Add results to each gate's row
             for gate in GATE_NAMES:
                 accuracy = gate_accuracies.get(gate, 0)
-                rows[gate] += f"{accuracy:.1f}".ljust(10)
+                # Use the full precision available
+                rows[gate] += f"{accuracy:.3f}".ljust(12)
         
         # Write each gate's completed row to its result file
         for gate in GATE_NAMES:
@@ -173,7 +176,7 @@ def main():
                         best_threshold = threshold
                         best_delay = DELAYS[i]
         
-        result_line = f"{gate}: Threshold={best_threshold}, Delay={best_delay}, Accuracy={best_accuracy:.1f}%"
+        result_line = f"{gate}: Threshold={best_threshold}, Delay={best_delay}, Accuracy={best_accuracy:.3f}%"
         print(result_line)
         best_configs.append(result_line)
     

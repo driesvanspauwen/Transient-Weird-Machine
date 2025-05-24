@@ -1,7 +1,7 @@
 #include "compose.h"
 
-#define THRESHOLD 150
-#define DELAY 1024
+#define THRESHOLD 125
+#define DELAY 128
 
 uint8_t tmp_reg1[4*512];
 uint8_t tmp_reg2[4*512];
